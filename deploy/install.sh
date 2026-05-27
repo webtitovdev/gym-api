@@ -101,8 +101,22 @@ sleep 1
 systemctl --no-pager status gym-api || true
 
 # ───── caddy ─────
+# Detect if port 443 is already in use (common: xray/v2ray/nginx).
+# If yes, fall back to 8443 so we don't disrupt other services.
+HTTPS_PORT=443
+if ss -tlnp 2>/dev/null | grep -q ':443 ' && ! ss -tlnp 2>/dev/null | grep ':443 ' | grep -q caddy; then
+  HTTPS_PORT=8443
+  echo "[caddy] port 443 already in use by another service, using $HTTPS_PORT instead"
+fi
+
+if [ "$HTTPS_PORT" = "443" ]; then
+  ADDR="${DOMAIN}"
+else
+  ADDR="${DOMAIN}:${HTTPS_PORT}"
+fi
+
 cat > /etc/caddy/Caddyfile <<EOF
-${DOMAIN} {
+${ADDR} {
   reverse_proxy localhost:3000
   encode gzip
   header {
@@ -111,14 +125,16 @@ ${DOMAIN} {
   }
 }
 EOF
-systemctl reload caddy
+systemctl restart caddy
+
+API_URL="https://${ADDR}"
 
 echo
 echo "===================================================="
 echo "  Done."
-echo "  API:    https://${DOMAIN}"
-echo "  Health: curl https://${DOMAIN}/health"
-echo "  Login:  curl -X POST https://${DOMAIN}/auth/login \\"
+echo "  API:    ${API_URL}"
+echo "  Health: curl ${API_URL}/health"
+echo "  Login:  curl -X POST ${API_URL}/auth/login \\"
 echo "            -H 'content-type: application/json' \\"
 echo "            -d '{\"password\":\"<your password>\"}'"
 echo "===================================================="
