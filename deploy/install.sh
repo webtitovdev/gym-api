@@ -50,8 +50,14 @@ if ! command -v caddy >/dev/null 2>&1; then
 fi
 
 # ───── user + clone ─────
+# No --create-home: we own /opt/gym-api separately, no need for $HOME there
 id -u gym-api >/dev/null 2>&1 || \
-  useradd --system --shell /usr/sbin/nologin --create-home --home-dir "$INSTALL_DIR" gym-api
+  useradd --system --shell /usr/sbin/nologin gym-api
+
+# If dir exists without .git (e.g. leftover from prior failed run), wipe it.
+if [ -d "$INSTALL_DIR" ] && [ ! -d "$INSTALL_DIR/.git" ]; then
+  rm -rf "$INSTALL_DIR"
+fi
 
 if [ -d "$INSTALL_DIR/.git" ]; then
   cd "$INSTALL_DIR" && sudo -u gym-api git pull
