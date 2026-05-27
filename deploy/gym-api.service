@@ -1,0 +1,22 @@
+[Unit]
+Description=Gym workout tracker API
+After=network.target
+
+[Service]
+Type=simple
+User=gym-api
+WorkingDirectory=/opt/gym-api
+EnvironmentFile=/opt/gym-api/.env
+ExecStart=/usr/bin/node /opt/gym-api/dist/index.js
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/gym-api/data
+
+[Install]
+WantedBy=multi-user.target
